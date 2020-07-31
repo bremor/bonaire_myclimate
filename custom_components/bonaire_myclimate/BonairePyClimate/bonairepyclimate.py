@@ -49,7 +49,7 @@ class HandleServer(asyncio.Protocol):
 
         # Check if the message is an installation response
         if root.find('response') is not None and root.find('response').text == 'installation':
-            self._available_zones = root.find('zoneList').text
+            #self._available_zones = root.find('zoneList').text
             self._transport.write(GETZONEINFO.encode())
 
         # Check if the message is a discovery response
