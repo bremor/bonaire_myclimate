@@ -36,7 +36,7 @@ Configuration variables:
 
 ## Troubleshooting
 Please set your logging for the custom_component to debug:
-```
+```yaml
 logger:
   default: warn
   logs:
