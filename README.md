@@ -32,6 +32,7 @@ You must have the Bonaire Wifi Module installed and connected to your Wifi.
 ## Future goals...
 - Control fan speed
 
+## Configuration
 ```yaml
 # Example configuration.yaml entry
 climate:
