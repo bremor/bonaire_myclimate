@@ -1,0 +1,8 @@
+{
+  "domain": "bonaire_myclimate",
+  "name": "Bonaire MyClimate",
+  "documentation": "https://github.com/bremor/bonaire_myclimate",
+  "dependencies": [],
+  "codeowners": ["@bremor"],
+  "requirements": []
+}
