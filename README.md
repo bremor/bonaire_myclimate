@@ -36,6 +36,9 @@ You must have the Bonaire Wifi Module installed and connected to your Wifi.
 # Example configuration.yaml entry
 climate:
   - platform: bonaire_myclimate
+    name: this_is_my_entity_name
 ```
 
-No other configuration variables are required or supported at this stage.
+Configuration variables:
+
+- **name** (*Optional*): The name of your climate entity. Default is `Bonaire MyClimate`
