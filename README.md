@@ -21,6 +21,7 @@ You will need to add this repository manually to HACS, repository URL is https:/
 You must have the Bonaire Wifi Module installed and connected to your Wifi.
 
 ## Current Functionality as of v0.1
+- Read heat/cool/fan operation
 - Read room temperature
 - Control target temperature.
 
