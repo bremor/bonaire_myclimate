@@ -2,20 +2,6 @@
 
 The `Bonaire MyClimate` climate platform is a reverse engineered implementation of the MyClimate app which is used to control the WiFi module of a Bonaire heating and/or cooling system. This is in no way associated with the company Bonaire and comes with no guarantees or warranty. Use at your own risk.
 
-## Manual Installation 
-To add Bonaire MyClimate to your installation, create this folder structure in your /config directory:
-- “custom_components/bonaire_myclimate”.
-
-Then, drop the following files into that folder:
-- \_\_init__.py
-- manifest.json
-- climate.py
-- BonairePyClimate/\_\_init__.py
-- BonairePyClimate/bonairepyclimate.py
-
-## HACS Support
-You will need to add this repository manually to HACS, repository URL is https://github.com/bremor/bonaire_myclimate 
-
 ## Prerequisites
 ### Hardware
 You must have the Bonaire Wifi Module installed and connected to your Wifi.
