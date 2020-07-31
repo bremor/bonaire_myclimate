@@ -39,7 +39,7 @@ class BonaireMyClimateClimate(ClimateEntity):
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
+        return SUPPORT_TARGET_TEMPERATURE
 
     @property
     def name(self):
