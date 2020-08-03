@@ -36,10 +36,14 @@ class BonaireMyClimateClimate(ClimateEntity):
         self._climate = climate
         self._config = config
 
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+        self._climate.register_update_callback(self.update_callback)
+
     @property
     def supported_features(self):
         """Return the list of supported features."""
-        return SUPPORT_TARGET_TEMPERATURE
+        return SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE
 
     @property
     def name(self):
@@ -69,7 +73,7 @@ class BonaireMyClimateClimate(ClimateEntity):
     def hvac_mode(self):
         """Return current operation ie. heat, cool, idle."""
         return self._climate.get_hvac_mode()
-        
+
     @property
     def hvac_modes(self):
         """Return the list of available operation modes."""
@@ -77,14 +81,42 @@ class BonaireMyClimateClimate(ClimateEntity):
                 HVAC_MODE_COOL, HVAC_MODE_FAN_ONLY,]
 
     @property
+    def preset_mode(self):
+        """Return current preset mode"""
+        return self._climate.get_preset_mode()
+
+    @property
+    def preset_modes(self):
+        """Return the list of available preset modes."""
+        return self._climate.get_preset_modes()
+
+    @property
     def precision(self):
         """Return the precision of the system."""
         return '1.0'
 
+    @property
+    def should_poll(self):
+        """Return the polling state."""
+        return False
+
+    async def async_set_hvac_mode(self, hvac_mode):
+        """Set new target hvac mode."""
+        await self._climate.set_hvac_mode(hvac_mode)
+
+    async def async_set_preset_mode(self, preset_mode):
+        """Set new target preset mode."""
+        await self._climate.set_preset_mode(preset_mode)
+
     async def async_set_temperature(self, **kwargs):
+        """Set new target temperature."""
         temperature = kwargs.get(ATTR_TEMPERATURE)
         temperature = int(temperature)
         await self._climate.set_temperature(temperature)
 
     async def async_update(self):
         pass
+
+    def update_callback(self):
+        """Call update method."""
+        self.async_schedule_update_ha_state(False)
