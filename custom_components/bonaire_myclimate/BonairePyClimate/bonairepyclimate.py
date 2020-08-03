@@ -125,7 +125,7 @@ class BonairePyClimate():
         self._hass.loop.create_task(self.queue_commands())
 
     async def set_preset_mode(self, preset_mode):
-        self.preset_mode = preset_mode
+        self._states['zoneList'] = preset_mode
         self._update_callback()
 
         self._queued_commands['zoneList'] = preset_mode
