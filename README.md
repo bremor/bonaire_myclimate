@@ -30,8 +30,6 @@ You must have the Bonaire Wifi Module installed and connected to your Wifi.
 
 ## Coming soon...
 - Control mode (econ/thermo/boost) 
-
-## Future goals...
 - Control fan speed
 
 ## Configuration
