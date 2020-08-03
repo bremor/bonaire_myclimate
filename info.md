@@ -6,18 +6,16 @@ The `Bonaire MyClimate` climate platform is a reverse engineered implementation 
 ### Hardware
 You must have the Bonaire Wifi Module installed and connected to your Wifi.
 
-## Current Functionality as of v0.1
+## Current Functionality as of v0.2
 - Read heat/cool/fan operation
 - Read room temperature
 - Control target temperature.
-
-## Coming soon...
 - Control system on/off.
 - Control zones.
 - Control type (heat/cool/fan)
-- Control mode (econ/thermo/boost) 
 
-## Future goals...
+## Coming soon...
+- Control mode (econ/thermo/boost)
 - Control fan speed
 
 ## Configuration
