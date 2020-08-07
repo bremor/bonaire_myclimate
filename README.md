@@ -45,3 +45,13 @@ climate:
 Configuration variables:
 
 - **name** (*Optional*): The name of your climate entity. Default is `Bonaire MyClimate`
+
+
+## Troubleshooting
+Please set your logging for the custom_component to debug:
+```yaml
+logger:
+  default: warn
+  logs:
+    custom_components.bonaire_myclimate: debug
+```
