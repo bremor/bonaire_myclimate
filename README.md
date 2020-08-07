@@ -21,12 +21,13 @@ You will need to add this repository manually to HACS, repository URL is https:/
 ### Hardware
 You must have the Bonaire Wifi Module installed and connected to your Wifi.
 
-## Current Functionality as of v0.3
+## Functionality as of v0.3
 - Control target temperature.
 - Control system on/off.
 - Control zones.
 - Control type (heat/cool/fan)
 - Control mode (econ/thermo/boost)
+- Service to individual zones on or off
 
 ## Coming soon...
 - Control fan speed
