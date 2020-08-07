@@ -9,9 +9,12 @@ from homeassistant.components.climate.const import (
 from itertools import combinations
 
 _LOGGER = logging.getLogger(__name__)
+COOL_FAN_MODES = ['econ', 'thermo']
 DELETE = "<myclimate><delete>connection</delete></myclimate>"
 DISCOVERY = "<myclimate><get>discovery</get><ip>{}</ip><platform>android</platform><version>1.0.0</version></myclimate>"
+FAN_ONLY_FAN_MODES = ['1', '2', '3', '4', '5', '6', '7', '8']
 GETZONEINFO = "<myclimate><get>getzoneinfo</get><zoneList>1,2</zoneList></myclimate>"
+HEAT_FAN_MODES = ['econ', 'thermo', 'boost']
 INSTALLATION = "<myclimate><get>installation</get></myclimate>"
 LOCAL_PORT = 10003
 POSTZONEINFO = "<myclimate><post>postzoneinfo</post><system>{system}</system><type>{type}</type><zoneList>{zoneList}</zoneList><mode>{mode}</mode><setPoint>{setPoint}</setPoint></myclimate>"
@@ -63,15 +66,21 @@ class HandleServer(asyncio.Protocol):
         # Check if the message is getzoneinfo response or postzoneinfo
         if (getzoneinfo or postzoneinfo) and not self._parent._queueing_commands:
             for state in self._parent._states:
-                self._parent._states[state] = root.find(state).text
+                if root.find(state) is not None:
+                    self._parent._states[state] = root.find(state).text
+                else:
+                    self._parent._states[state] = None
             if root.find('system').text == 'off':
                 self._parent._hvac_mode = HVAC_MODE_OFF
             elif root.find('mode').text == 'fan':
                 self._parent._hvac_mode = HVAC_MODE_FAN_ONLY
+                self._parent._fan_modes = FAN_ONLY_FAN_MODES
             elif root.find('type').text == 'heat':
                 self._parent._hvac_mode = HVAC_MODE_HEAT
+                self._parent._fan_modes = HEAT_FAN_MODES
             else:
                 self._parent._hvac_mode = HVAC_MODE_COOL
+                self._parent._fan_modes = COOL_FAN_MODES
 
             self._parent._update_callback()
 
@@ -81,10 +90,11 @@ class HandleServer(asyncio.Protocol):
 
 class BonairePyClimate():
 
-    def __init__(self, hass, local_ip):
+    def __init__(self, event_loop, local_ip):
         self._available_zones = None
         self._connected = False
-        self._hass = hass
+        self._event_loop = event_loop
+        self._fan_modes = []
         self._hvac_mode = None
         self._local_ip = local_ip
         self._preset_modes = []
@@ -97,43 +107,69 @@ class BonairePyClimate():
                    'type': None,
                    'zoneList': None,
                    'mode': None,
+                   'fanSpeed': None,
                    'setPoint': None,
                    'roomTemp': None,}
         self._update_callback = None
 
-        self._hass.loop.create_task(self.start())
+        self._event_loop.create_task(self.start())
 
     async def set_hvac_mode(self, hvac_mode):
         self._hvac_mode = hvac_mode
-        self._update_callback()
 
         if hvac_mode == HVAC_MODE_OFF:
             self._queued_commands['system'] = 'off'
         elif hvac_mode == HVAC_MODE_HEAT:
+            self._fan_modes = HEAT_FAN_MODES
             self._queued_commands['system'] = 'on'
             self._queued_commands['type'] = 'heat'
             self._queued_commands['mode'] = 'thermo'
         elif hvac_mode == HVAC_MODE_COOL:
+            self._fan_modes = COOL_FAN_MODES
             self._queued_commands['system'] = 'on'
             self._queued_commands['type'] = 'cool'
             self._queued_commands['mode'] = 'thermo'
         else:
+            self._fan_modes = FAN_ONLY_FAN_MODES
             self._queued_commands['system'] = 'on'
             self._queued_commands['type'] = 'cool'
             self._queued_commands['mode'] = 'fan'
 
-        self._hass.loop.create_task(self.queue_commands())
+        self._update_callback()
+        self._event_loop.create_task(self.queue_commands())
 
     async def set_preset_mode(self, preset_mode):
-        self._states['zoneList'] = preset_mode
-        self._update_callback()
+        await self.set_general('zoneList', preset_mode)
 
-        self._queued_commands['zoneList'] = preset_mode
-        self._hass.loop.create_task(self.queue_commands())
-
+    async def set_fan_mode(self, fan_mode):
+        await self.set_general('mode', fan_mode)
+        
     async def set_temperature(self, temperature):
-        self._queued_commands['setPoint'] = str(temperature)
-        self._hass.loop.create_task(self.queue_commands())
+        await self.set_general('setPoint', str(temperature))
+
+    async def set_general(self, key, value):
+        self._states[key] = value
+        self._update_callback()
+        self._queued_commands[key] = value
+        self._event_loop.create_task(self.queue_commands())
+
+    async def turn_zone_off(self, zone):
+        if str(zone) in self._states['zoneList'] and len(self._states['zoneList']) > 1:
+            zoneList = self._states['zoneList']
+            zoneList = zoneList.split(',')
+            zoneList.remove(str(zone))
+            zoneList = ','.join(zoneList)
+            if zoneList in self._preset_modes:
+                await self.set_general('zoneList', zoneList)
+
+    async def turn_zone_on(self, zone):
+        if str(zone) not in self._states['zoneList']:
+            zoneList = "{},{}".format(self._states['zoneList'], zone)
+            zoneList = zoneList.split(',')
+            zoneList = sorted(zoneList)
+            zoneList = ','.join(zoneList)
+            if zoneList in self._preset_modes:
+                await self.set_general('zoneList', zoneList)
 
     def get_current_temperature(self):
         return int(self._states['roomTemp']) if self._states['roomTemp'] else None
@@ -146,7 +182,13 @@ class BonairePyClimate():
 
     def get_preset_modes(self):
         return self._preset_modes
-        
+
+    def get_fan_mode(self):
+        return self._states['fanSpeed'] if self._hvac_mode == HVAC_MODE_FAN_ONLY else self._states['mode']
+
+    def get_fan_modes(self):
+        return self._fan_modes
+
     def get_target_temperature(self):
         return int(self._states['setPoint']) if self._states['setPoint'] else None
 
@@ -181,7 +223,7 @@ class BonairePyClimate():
 
     async def start(self):
 
-        self._server_socket = await self._hass.loop.create_server(
+        self._server_socket = await self._event_loop.create_server(
             lambda: HandleServer(self),
             self._local_ip, LOCAL_PORT)
 
@@ -197,7 +239,7 @@ class BonairePyClimate():
                 await asyncio.sleep(cooloff_timer)
 
                 # Send the UDP discovery broadcast
-                transport, protocol = await self._hass.loop.create_datagram_endpoint(
+                transport, protocol = await self._event_loop.create_datagram_endpoint(
                     lambda: HandleUDPBroadcast(DISCOVERY.format(self._local_ip)),
                     remote_addr=('255.255.255.255', UDP_DISCOVERY_PORT),
                     allow_broadcast=True)
