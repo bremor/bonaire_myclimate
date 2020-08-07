@@ -10,6 +10,7 @@ Then, drop the following files into that folder:
 - \_\_init__.py
 - manifest.json
 - climate.py
+- services.yaml
 - BonairePyClimate/\_\_init__.py
 - BonairePyClimate/bonairepyclimate.py
 
@@ -20,16 +21,14 @@ You will need to add this repository manually to HACS, repository URL is https:/
 ### Hardware
 You must have the Bonaire Wifi Module installed and connected to your Wifi.
 
-## Current Functionality as of v0.2
-- Read heat/cool/fan operation
-- Read room temperature
+## Current Functionality as of v0.3
 - Control target temperature.
 - Control system on/off.
 - Control zones.
 - Control type (heat/cool/fan)
+- Control mode (econ/thermo/boost)
 
 ## Coming soon...
-- Control mode (econ/thermo/boost) 
 - Control fan speed
 
 ## Configuration
