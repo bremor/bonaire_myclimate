@@ -214,6 +214,10 @@ class BonairePyClimate():
             self._queueing_commands = False
 
     def get_zone_combinations(self, zoneList):
+        # Installations without multiple zones will have one "common" zone
+        if zoneList == 'Common':
+            return list('')
+            
         zoneList = zoneList.replace(',','')
         preset_modes = []
         for i in range(1, len(zoneList)+1):
