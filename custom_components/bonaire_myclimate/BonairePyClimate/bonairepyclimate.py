@@ -60,6 +60,10 @@ class HandleServer(asyncio.Protocol):
         if root.find('response') is not None and root.find('response').text == 'discovery':
             self._parent._connected = True
 
+        # Check if the message is a postzoneinfo response
+        if root.find('result') is not None and root.find('result').text == 'ok':
+            self._parent._postzoneinfo_response_ok = True
+            
         getzoneinfo = root.find('response') is not None and root.find('response').text == 'getzoneinfo'
         postzoneinfo = root.find('post') is not None and root.find('post').text == 'postzoneinfo'
 
@@ -97,6 +101,7 @@ class BonairePyClimate():
         self._fan_modes = []
         self._hvac_mode = None
         self._local_ip = local_ip
+        self._postzoneinfo_response_ok = False
         self._preset_modes = []
         self._queued_commands = {}
         self._queueing_commands = False
@@ -207,13 +212,30 @@ class BonairePyClimate():
             payload = POSTZONEINFO.format_map(SafeDict(self._queued_commands))
             payload = payload.format_map(self._states)
             self._queued_commands.clear()
-
-            _LOGGER.debug("Sending the command: {}".format(payload))
-            self._server_transport.write(payload.encode())
-
             self._queueing_commands = False
 
+            for attempts in range(3):
+                if attempts > 0:
+                    _LOGGER.debug("Response not received, resending command: {}".format(payload))
+                else:
+                    _LOGGER.debug("Sending the command: {}".format(payload))
+                self._server_transport.write(payload.encode())
+                for wait in range(5):
+                    await asyncio.sleep(1)
+                    if self._postzoneinfo_response_ok: break
+                if self._postzoneinfo_response_ok: break
+            else:
+                _LOGGER.debug("No response received after 3 attempts, aborting")
+
+            self._postzoneinfo_response_ok = False
+
+
     def get_zone_combinations(self, zoneList):
+
+        # Installations without multiple zones will have one 'Common' zone
+        if zoneList == 'Common':
+            return ['Common']
+
         zoneList = zoneList.replace(',','')
         preset_modes = []
         for i in range(1, len(zoneList)+1):
