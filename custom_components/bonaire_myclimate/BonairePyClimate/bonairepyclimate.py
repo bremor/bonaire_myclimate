@@ -225,7 +225,7 @@ class BonairePyClimate():
                     if self._postzoneinfo_response_ok: break
                 if self._postzoneinfo_response_ok: break
             else:
-                _LOGGER.debug("No response received after 3 attempts, aborting")
+                _LOGGER.warning("No response received after 3 attempts, aborting")
 
             self._postzoneinfo_response_ok = False
 
