@@ -2,6 +2,7 @@
   "domain": "bonaire_myclimate",
   "name": "Bonaire MyClimate",
   "documentation": "https://github.com/bremor/bonaire_myclimate",
+  "issue_tracker": "https://github.com/bremor/bonaire_myclimate/issues",
   "dependencies": [],
   "codeowners": ["@bremor"],
   "requirements": []
