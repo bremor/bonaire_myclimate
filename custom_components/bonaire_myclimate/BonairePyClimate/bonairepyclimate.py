@@ -12,11 +12,16 @@ _LOGGER = logging.getLogger(__name__)
 COOL_FAN_MODES = ['econ', 'thermo']
 DELETE = "<myclimate><delete>connection</delete></myclimate>"
 DISCOVERY = "<myclimate><get>discovery</get><ip>{}</ip><platform>android</platform><version>1.0.0</version></myclimate>"
+EVAP_FAN_MODES = ['thermo']
+EVAP_MAX_TEMP = 8
+EVAP_MIN_TEMP = 1
 FAN_ONLY_FAN_MODES = ['1', '2', '3', '4', '5', '6', '7', '8']
 GETZONEINFO = "<myclimate><get>getzoneinfo</get><zoneList>1,2</zoneList></myclimate>"
 HEAT_FAN_MODES = ['econ', 'thermo', 'boost']
 INSTALLATION = "<myclimate><get>installation</get></myclimate>"
 LOCAL_PORT = 10003
+MAX_TEMP = 32
+MIN_TEMP = 10
 POSTZONEINFO = "<myclimate><post>postzoneinfo</post><system>{system}</system><type>{type}</type><zoneList>{zoneList}</zoneList><mode>{mode}</mode><setPoint>{setPoint}</setPoint></myclimate>"
 UDP_DISCOVERY_PORT = 10001
 
@@ -36,66 +41,23 @@ class HandleUDPBroadcast:
         pass
 
 class HandleServer(asyncio.Protocol):
-    def __init__(self, parent):
-        self._parent = parent
-        self._transport = None
+    def __init__(self, parent, connection_made_callback, data_received_callback, connection_lost_callback):
+        self.connection_made_callback = connection_made_callback
+        self.data_received_callback = data_received_callback
+        self.connection_lost_callback = connection_lost_callback
 
     def connection_made(self, transport):
-        _LOGGER.debug("Connected to Wifi Module")
-        self._parent._server_transport = transport
-        self._transport = transport
-        transport.write(INSTALLATION.encode())
+        self.connection_made_callback(transport)
 
     def data_received(self, data):
-        message = data.decode()
-        _LOGGER.debug("Server data received: {}".format(message))
-        root = xml.etree.ElementTree.fromstring(message)
-
-        # Check if the message is an installation response
-        if root.find('response') is not None and root.find('response').text == 'installation':
-            self._parent._preset_modes = self._parent.get_zone_combinations(root.find('appliance/zoneList').text)
-            self._transport.write(GETZONEINFO.encode())
-
-        # Check if the message is a discovery response
-        if root.find('response') is not None and root.find('response').text == 'discovery':
-            self._parent._connected = True
-
-        # Check if the message is a postzoneinfo response
-        if root.find('result') is not None and root.find('result').text == 'ok':
-            self._parent._postzoneinfo_response_ok = True
-            
-        getzoneinfo = root.find('response') is not None and root.find('response').text == 'getzoneinfo'
-        postzoneinfo = root.find('post') is not None and root.find('post').text == 'postzoneinfo'
-
-        # Check if the message is getzoneinfo response or postzoneinfo
-        if (getzoneinfo or postzoneinfo) and not self._parent._queueing_commands:
-            for state in self._parent._states:
-                if root.find(state) is not None:
-                    self._parent._states[state] = root.find(state).text
-                else:
-                    self._parent._states[state] = None
-            if root.find('system').text == 'off':
-                self._parent._hvac_mode = HVAC_MODE_OFF
-            elif root.find('mode').text == 'fan':
-                self._parent._hvac_mode = HVAC_MODE_FAN_ONLY
-                self._parent._fan_modes = FAN_ONLY_FAN_MODES
-            elif root.find('type').text == 'heat':
-                self._parent._hvac_mode = HVAC_MODE_HEAT
-                self._parent._fan_modes = HEAT_FAN_MODES
-            else:
-                self._parent._hvac_mode = HVAC_MODE_COOL
-                self._parent._fan_modes = COOL_FAN_MODES
-
-            self._parent._update_callback()
+        self.data_received_callback(data)
 
     def connection_lost(self, exc):
-        _LOGGER.debug("Server connection lost")
-        self._parent._connected = False
+        self.connection_lost_callback()
 
 class BonairePyClimate():
-
     def __init__(self, event_loop, local_ip):
-        self._available_zones = None
+        self._appliances = {}
         self._connected = False
         self._event_loop = event_loop
         self._fan_modes = []
@@ -106,7 +68,6 @@ class BonairePyClimate():
         self._queued_commands = {}
         self._queueing_commands = False
         self._queueing_timer = None
-        self._server_socket = None
         self._server_transport = None
         self._states = {'system': None,
                    'type': None,
@@ -185,6 +146,12 @@ class BonairePyClimate():
     def get_preset_mode(self):
         return self._states['zoneList']
 
+    def get_max_temp(self):
+        return EVAP_MAX_TEMP if self._states['type'] == 'evap' else MAX_TEMP
+
+    def get_min_temp(self):
+        return EVAP_MIN_TEMP if self._states['type'] == 'evap' else MIN_TEMP
+
     def get_preset_modes(self):
         return self._preset_modes
 
@@ -229,7 +196,6 @@ class BonairePyClimate():
 
             self._postzoneinfo_response_ok = False
 
-
     def get_zone_combinations(self, zoneList):
 
         # Installations without multiple zones will have one 'Common' zone
@@ -245,8 +211,8 @@ class BonairePyClimate():
 
     async def start(self):
 
-        self._server_socket = await self._event_loop.create_server(
-            lambda: HandleServer(self),
+        await self._event_loop.create_server(
+            lambda: HandleServer(self, self.server_connection_made_callback, self.server_data_received_callback, self.server_connection_lost_callback),
             self._local_ip, LOCAL_PORT)
 
         while True:
@@ -279,6 +245,63 @@ class BonairePyClimate():
     def register_update_callback(self, method):
         """Public method to add a callback subscriber."""
         self._update_callback = method
+
+    def server_connection_made_callback(self, transport):
+        _LOGGER.debug("Connected to Wifi Module")
+        self._server_transport = transport
+        transport.write(INSTALLATION.encode())
+
+    def server_data_received_callback(self, data):
+        message = data.decode()
+        _LOGGER.debug("Server data received: {}".format(message))
+        root = xml.etree.ElementTree.fromstring(message)
+
+        # Check if the message is an installation response
+        if root.find('response') is not None and root.find('response').text == 'installation':
+            self._preset_modes = self.get_zone_combinations(root.find('appliance/zoneList').text)
+            for appliance in root.findall('appliance'):
+                self._appliances[appliance.find('type').text] = appliance.find('zoneList').text
+            _LOGGER.debug(self._appliances)
+            self._server_transport.write(GETZONEINFO.encode())
+
+        # Check if the message is a discovery response
+        if root.find('response') is not None and root.find('response').text == 'discovery':
+            self._connected = True
+
+        # Check if the message is a postzoneinfo response
+        if root.find('result') is not None and root.find('result').text == 'ok':
+            self._postzoneinfo_response_ok = True
+
+        getzoneinfo = root.find('response') is not None and root.find('response').text == 'getzoneinfo'
+        postzoneinfo = root.find('post') is not None and root.find('post').text == 'postzoneinfo'
+
+        # Check if the message is getzoneinfo response or postzoneinfo
+        if (getzoneinfo or postzoneinfo) and not self._queueing_commands:
+            for state in self._states:
+                if root.find(state) is not None:
+                    self._states[state] = root.find(state).text
+                else:
+                    self._states[state] = None
+            if root.find('system').text == 'off':
+                self._hvac_mode = HVAC_MODE_OFF
+            elif root.find('mode').text == 'fan':
+                self._hvac_mode = HVAC_MODE_FAN_ONLY
+                self._fan_modes = FAN_ONLY_FAN_MODES
+            elif root.find('type').text == 'heat':
+                self._hvac_mode = HVAC_MODE_HEAT
+                self._fan_modes = HEAT_FAN_MODES
+            elif root.find('type').text == 'cool':
+                self._hvac_mode = HVAC_MODE_COOL
+                self._fan_modes = COOL_FAN_MODES
+            else:
+                self._hvac_mode = HVAC_MODE_COOL
+                self._fan_modes = EVAP_FAN_MODES
+
+            self._update_callback()
+
+    def server_connection_lost_callback(self):
+        _LOGGER.debug("Server connection lost")
+        self._connected = False
 
 class SafeDict(dict):
     def __missing__(self, key):
