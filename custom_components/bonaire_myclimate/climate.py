@@ -15,8 +15,6 @@ from .BonairePyClimate.bonairepyclimate import BonairePyClimate
 
 _LOGGER = logging.getLogger(__name__)
 DEFAULT_NAME = "Bonaire MyClimate"
-MAX_TEMP = 32
-MIN_TEMP = 10
 PRECISION = '1.0'
 TEMPERATURE_STEP = 1
 TURN_ZONE_OFF = "turn_zone_off"
@@ -87,12 +85,12 @@ class BonaireMyClimateClimate(ClimateEntity):
     @property
     def max_temp(self):
         """Return the maximum temperature."""
-        return MAX_TEMP
+        return self._climate.get_max_temp()
 
     @property
     def min_temp(self):
         """Return the minimum temperature."""
-        return MIN_TEMP
+        return self._climate.get_min_temp()
 
     @property
     def precision(self):
