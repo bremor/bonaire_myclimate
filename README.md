@@ -1,31 +1,42 @@
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
 
 The `Bonaire MyClimate` climate platform is a reverse engineered implementation of the MyClimate app which is used to control the WiFi module of a Bonaire heating and/or cooling system. This is in no way associated with the company Bonaire and comes with no guarantees or warranty. Use at your own risk.
 
-## Manual Installation 
-To add Bonaire MyClimate to your installation, create this folder structure in your /config directory:
-- “custom_components/bonaire_myclimate”.
+# Installation (There are two methods, with HACS or manual)
 
-Then, drop the following files into that folder:
-- \_\_init__.py
-- manifest.json
-- climate.py
-- services.yaml
-- BonairePyClimate/\_\_init__.py
-- BonairePyClimate/bonairepyclimate.py
+### 1. Easy Mode
 
-## HACS Support
-You will need to add this repository manually to HACS, repository URL is https://github.com/bremor/bonaire_myclimate 
+We support [HACS](https://hacs.netlify.com/). Go to "STORE", search "Bonaire MyClimate" and install.
 
-## Prerequisites
-### Hardware
+### 2. Manual
+
+Install it as you would do with any homeassistant custom component:
+
+1. Download `custom_components` folder.
+2. Copy the `bonaire_myclimate` directory within the `custom_components` directory of your homeassistant installation.
+The `custom_components` directory resides within your homeassistant configuration directory.
+**Note**: if the custom_components directory does not exist, you need to create it.
+After a correct installation, your configuration directory should look like the following.
+
+    ```
+    └── ...
+    └── configuration.yaml
+    └── custom_components
+        └── bonaire_myclimate
+            └── __init__.py
+            └── climate.py
+            └── manifest.json
+            └── services.yaml
+            └── BonairePyClimate
+                └── bonairepyclimate.py.py
+    ```
+
+# Prerequisites
+
+### 1. Hardware
 You must have the Bonaire Wifi Module installed and connected to your Wifi.
 
-## Coming soon...
-- Fan mode (only support heat/cool at the moment)
-- Evap mode
-
-## Configuration
+# Configuration
 Add the following to your `configuration.yaml` file:
 
 ```yaml
