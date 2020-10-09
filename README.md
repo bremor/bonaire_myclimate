@@ -28,7 +28,7 @@ After a correct installation, your configuration directory should look like the 
             └── manifest.json
             └── services.yaml
             └── BonairePyClimate
-                └── bonairepyclimate.py.py
+                └── bonairepyclimate.py
     ```
 
 # Prerequisites
