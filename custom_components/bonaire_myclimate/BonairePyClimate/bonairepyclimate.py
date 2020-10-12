@@ -9,7 +9,7 @@ from homeassistant.components.climate.const import (
 from itertools import combinations
 
 _LOGGER = logging.getLogger(__name__)
-COOL_FAN_MODES = ['econ', 'thermo']
+COOL_FAN_MODES = ['thermo']
 DELETE = "<myclimate><delete>connection</delete></myclimate>"
 DISCOVERY = "<myclimate><get>discovery</get><ip>{}</ip><platform>android</platform><version>1.0.0</version></myclimate>"
 EVAP_FAN_MODES = ['thermo']
@@ -23,6 +23,7 @@ LOCAL_PORT = 10003
 MAX_TEMP = 32
 MIN_TEMP = 10
 POSTZONEINFO = "<myclimate><post>postzoneinfo</post><system>{system}</system><type>{type}</type><zoneList>{zoneList}</zoneList><mode>{mode}</mode><setPoint>{setPoint}</setPoint></myclimate>"
+POSTZONEINFOFAN = "<myclimate><post>postzoneinfo</post><system>{system}</system><type>{type}</type><zoneList>{zoneList}</zoneList><mode>{mode}</mode><fanSpeed>{fanSpeed}</fanSpeed></myclimate>"
 UDP_DISCOVERY_PORT = 10001
 
 class HandleUDPBroadcast:
@@ -108,7 +109,15 @@ class BonairePyClimate():
         await self.set_general('zoneList', preset_mode)
 
     async def set_fan_mode(self, fan_mode):
-        await self.set_general('mode', fan_mode)
+
+        # If the fan_mode is a number, this implies that the HVAC is set to
+        # fan_only.
+        if fan_mode.isnumeric():
+            _LOGGER.debug("fan_mode is numeric, setting fanSpeed to {}".format(fan_mode))
+            await self.set_general('fanSpeed', fan_mode)
+        else:
+            _LOGGER.debug("Setting fan_mode to {}".format(fan_mode))
+            await self.set_general('mode', fan_mode)
         
     async def set_temperature(self, temperature):
         await self.set_general('setPoint', str(temperature))
@@ -176,7 +185,12 @@ class BonairePyClimate():
                     self._queueing_timer -= 1
                 await asyncio.sleep(1)
 
-            payload = POSTZONEINFO.format_map(SafeDict(self._queued_commands))
+            # If mode is fan_only, the payload looks a little bit different.
+            # Inludes fanSpeed and removes setPoint 
+            if self._states["mode"] == "fan":
+                payload = POSTZONEINFOFAN.format_map(SafeDict(self._queued_commands))
+            else:
+                payload = POSTZONEINFO.format_map(SafeDict(self._queued_commands))
             payload = payload.format_map(self._states)
             self._queued_commands.clear()
             self._queueing_commands = False
