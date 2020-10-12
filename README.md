@@ -51,11 +51,149 @@ Configuration variables:
 - **name** (*Optional*): The name of your climate entity. Default is `Bonaire MyClimate`
 
 
-## Troubleshooting
+# Troubleshooting
 Please set your logging for the custom_component to debug:
 ```yaml
 logger:
   default: warn
   logs:
     custom_components.bonaire_myclimate: debug
+```
+
+# Using Simple Thermostat
+There is a custom card that looks great and works really well with this climate component. https://github.com/nervetattoo/simple-thermostat
+This is the lovelace code I use to display my thermostat. It uses conditional card to display different things depending on if your climate entity is  off/heat/cool/fan.
+```yaml
+cards:
+  - card:
+      control:
+        _headings: false
+        hvac:
+          cool:
+            name: Cool
+          fan_only:
+            name: Fan Only
+          heat:
+            name: Heat
+          'off':
+            name: 'Off'
+      decimals: 0
+      entity: climate.bonaire_myclimate
+      label:
+        temperature: Remote
+      name: false
+      step_size: 1
+      type: 'custom:simple-thermostat'
+    conditions:
+      - entity: climate.bonaire_myclimate
+        state: 'off'
+    type: conditional
+  - card:
+      control:
+        _headings: false
+        fan:
+          boost:
+            name: Boost
+          econ:
+            name: Economy
+          thermo:
+            name: Balanced
+        hvac:
+          cool:
+            name: Cool
+          fan_only:
+            name: Fan Only
+          heat:
+            name: Heat
+          'off':
+            name: 'Off'
+        preset:
+          '1':
+            name: Downstairs
+          '2':
+            name: Upstairs
+          '1,2':
+            name: Everywhere
+          none: false
+      decimals: 0
+      entity: climate.bonaire_myclimate
+      label:
+        temperature: Remote
+      name: false
+      step_size: 1
+      type: 'custom:simple-thermostat'
+    conditions:
+      - entity: climate.bonaire_myclimate
+        state: heat
+    type: conditional
+  - card:
+      control:
+        _headings: false
+        hvac:
+          cool:
+            name: Cool
+          fan_only:
+            name: Fan Only
+          heat:
+            name: Heat
+          'off':
+            name: 'Off'
+        preset:
+          '1':
+            name: Downstairs
+          '2':
+            name: Upstairs
+          '1,2':
+            name: Everywhere
+          none: false
+      decimals: 0
+      entity: climate.bonaire_myclimate
+      label:
+        temperature: Remote
+      name: false
+      step_size: 1
+      type: 'custom:simple-thermostat'
+    conditions:
+      - entity: climate.bonaire_myclimate
+        state: cool
+    type: conditional
+  - card:
+      control:
+        _headings: false
+        fan:
+          boost:
+            name: Boost
+          econ:
+            name: Economy
+          thermo:
+            name: Balanced
+        hvac:
+          cool:
+            name: Cool
+          fan_only:
+            name: Fan Only
+          heat:
+            name: Heat
+          'off':
+            name: 'Off'
+        preset:
+          '1':
+            name: Downstairs
+          '2':
+            name: Upstairs
+          '1,2':
+            name: Everywhere
+          none: false
+      decimals: 0
+      entity: climate.bonaire_myclimate
+      label:
+        temperature: Remote
+      name: false
+      step_size: 1
+      type: 'custom:simple-thermostat'
+    conditions:
+      - entity: climate.bonaire_myclimate
+        state: fan_only
+    type: conditional
+type: vertical-stack
 ```
