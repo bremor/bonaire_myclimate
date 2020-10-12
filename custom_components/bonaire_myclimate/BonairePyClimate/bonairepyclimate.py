@@ -94,8 +94,14 @@ class BonairePyClimate():
         elif hvac_mode == HVAC_MODE_COOL:
             self._fan_modes = COOL_FAN_MODES
             self._queued_commands['system'] = 'on'
-            self._queued_commands['type'] = 'cool'
             self._queued_commands['mode'] = 'thermo'
+
+            # Check if the system does 'evap' or 'cool' and set type to match
+            if self._appliances['evap'] is not None:
+                self._queued_commands['type'] = 'evap'
+            else:
+                self._queued_commands['type'] = 'cool'
+
         else:
             self._fan_modes = FAN_ONLY_FAN_MODES
             self._queued_commands['system'] = 'on'
