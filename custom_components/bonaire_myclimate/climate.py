@@ -79,8 +79,7 @@ class BonaireMyClimateClimate(ClimateEntity):
     @property
     def hvac_modes(self):
         """Return the list of available operation modes."""
-        return [HVAC_MODE_OFF, HVAC_MODE_HEAT, 
-                HVAC_MODE_COOL, HVAC_MODE_FAN_ONLY,]
+        return self._climate.get_hvac_modes()
 
     @property
     def max_temp(self):
