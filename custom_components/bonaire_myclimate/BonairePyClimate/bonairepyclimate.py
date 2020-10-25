@@ -160,9 +160,9 @@ class BonairePyClimate():
 
     def get_hvac_modes(self):
         hvac_modes = [HVAC_MODE_OFF, HVAC_MODE_FAN_ONLY]
-        if self._appliances is not None and self._appliances["heat"] is not None:
+        if self._appliances and self._appliances["heat"] is not None:
             hvac_modes.append(HVAC_MODE_HEAT)
-        if self._appliances is not None and (self._appliances["cool"] is not None or self._appliances["evap"] is not None):
+        if self._appliances and (self._appliances["cool"] is not None or self._appliances["evap"] is not None):
             hvac_modes.append(HVAC_MODE_COOL)
         _LOGGER.debug(hvac_modes)
         return hvac_modes
@@ -290,7 +290,7 @@ class BonairePyClimate():
             for appliance in root.findall('appliance'):
                 self._appliances[appliance.find('type').text] = appliance.find('zoneList').text
                 if appliance.find('zoneList').text is not None:
-                    self._preset_modes = self.get_zone_combinations(root.find('appliance/zoneList').text)
+                    self._preset_modes = self.get_zone_combinations(appliance.find('zoneList').text)
             _LOGGER.debug(self._appliances)
             self._server_transport.write(GETZONEINFO.encode())
 
