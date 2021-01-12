@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 COOL_FAN_MODES = ['thermo']
 DELETE = "<myclimate><delete>connection</delete></myclimate>"
 DISCOVERY = "<myclimate><get>discovery</get><ip>{}</ip><platform>android</platform><version>1.0.0</version></myclimate>"
-EVAP_FAN_MODES = ['thermo']
+EVAP_FAN_MODES = ['thermo', 'manual']
 EVAP_MAX_TEMP = 8
 EVAP_MIN_TEMP = 1
 FAN_ONLY_FAN_MODES = ['1', '2', '3', '4', '5', '6', '7', '8']
@@ -202,7 +202,7 @@ class BonairePyClimate():
 
             # If mode is fan_only, the payload looks a little bit different.
             # Inludes fanSpeed and removes setPoint 
-            if self._states["mode"] == "fan":
+            if self._states["mode"] == "fan" or self._states["mode"] == "manual":
                 payload = POSTZONEINFOFAN.format_map(SafeDict(self._queued_commands))
             else:
                 payload = POSTZONEINFO.format_map(SafeDict(self._queued_commands))
