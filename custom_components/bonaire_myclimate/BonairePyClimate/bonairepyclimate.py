@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 COOL_FAN_MODES = ['thermo']
 DELETE = "<myclimate><delete>connection</delete></myclimate>"
 DISCOVERY = "<myclimate><get>discovery</get><ip>{}</ip><platform>android</platform><version>1.0.0</version></myclimate>"
-EVAP_FAN_MODES = ['thermo', 'manual']
+EVAP_FAN_MODES = ['thermo']
 EVAP_MAX_TEMP = 8
 EVAP_MIN_TEMP = 1
 FAN_ONLY_FAN_MODES = ['1', '2', '3', '4', '5', '6', '7', '8']
@@ -124,7 +124,7 @@ class BonairePyClimate():
         else:
             _LOGGER.debug("Setting fan_mode to {}".format(fan_mode))
             await self.set_general('mode', fan_mode)
-
+        
     async def set_temperature(self, temperature):
         await self.set_general('setPoint', str(temperature))
 
@@ -157,6 +157,15 @@ class BonairePyClimate():
 
     def get_hvac_mode(self):
         return self._hvac_mode
+
+    def get_hvac_modes(self):
+        hvac_modes = [HVAC_MODE_OFF, HVAC_MODE_FAN_ONLY]
+        if self._appliances and self._appliances["heat"] is not None:
+            hvac_modes.append(HVAC_MODE_HEAT)
+        if self._appliances and (self._appliances["cool"] is not None or self._appliances["evap"] is not None):
+            hvac_modes.append(HVAC_MODE_COOL)
+        _LOGGER.debug(hvac_modes)
+        return hvac_modes
 
     def get_preset_mode(self):
         return self._states['zoneList']
@@ -193,7 +202,7 @@ class BonairePyClimate():
 
             # If mode is fan_only, the payload looks a little bit different.
             # Inludes fanSpeed and removes setPoint 
-            if self._states["mode"] == "fan" or self._states["mode"] == "manual":
+            if self._states["mode"] == "fan":
                 payload = POSTZONEINFOFAN.format_map(SafeDict(self._queued_commands))
             else:
                 payload = POSTZONEINFO.format_map(SafeDict(self._queued_commands))
@@ -278,9 +287,10 @@ class BonairePyClimate():
 
         # Check if the message is an installation response
         if root.find('response') is not None and root.find('response').text == 'installation':
-            self._preset_modes = self.get_zone_combinations(root.find('appliance/zoneList').text)
             for appliance in root.findall('appliance'):
                 self._appliances[appliance.find('type').text] = appliance.find('zoneList').text
+                if appliance.find('zoneList').text is not None:
+                    self._preset_modes = self.get_zone_combinations(appliance.find('zoneList').text)
             _LOGGER.debug(self._appliances)
             self._server_transport.write(GETZONEINFO.encode())
 
