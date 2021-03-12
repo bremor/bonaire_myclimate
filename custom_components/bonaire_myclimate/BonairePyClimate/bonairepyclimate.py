@@ -226,17 +226,15 @@ class BonairePyClimate():
             self._postzoneinfo_response_ok = False
 
     def get_zone_combinations(self, zoneList):
-
-        # Installations without multiple zones will have one 'Common' zone
-        if zoneList == 'Common':
-            return ['Common']
-
-        zoneList = zoneList.replace(',','')
         preset_modes = []
-        for i in range(1, len(zoneList)+1):
-            preset_modes.extend(combinations(zoneList, i))
+        zoneList = zoneList.split(",")
 
-        return list(map(lambda x: ','.join(x), preset_modes))
+        for i in range(1, len(zoneList)+1):
+            com = list(combinations(zoneList, i))
+            for i in range(0, len(com)):
+                preset_modes.append(",".join(com[i]).replace("C","Common"))
+
+        return preset_modes
 
     async def start(self):
 
