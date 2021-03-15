@@ -5,6 +5,6 @@
   "issue_tracker": "https://github.com/bremor/bonaire_myclimate/issues",
   "dependencies": [],
   "codeowners": ["@bremor"],
-  "version": "0.6.3",
+  "version": "0.6.4",
   "requirements": []
 }
