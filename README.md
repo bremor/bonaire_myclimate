@@ -1,57 +1,26 @@
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
+# Bonaire My Climate Custom Component
 
-The `Bonaire MyClimate` climate platform is a reverse engineered implementation of the MyClimate app which is used to control the WiFi module of a Bonaire heating and/or cooling system. This is in no way associated with the company Bonaire and comes with no guarantees or warranty. Use at your own risk.
+This Home Assistant custom component is a reverse engineered implementation of the "My Climate" iOS/Android app which is used to control the Wi-Fi module of a Bonaire heating and/or cooling system. This is in no way associated with the company Bonaire and comes with no guarantees or warranty. Use at your own risk.
 
-# Installation (There are two methods, with HACS or manual)
+## Installation
 
-### 1. Easy Mode
+[![hacs][hacsbadge]][hacs]
 
-We support [HACS](https://hacs.netlify.com/). Go to "STORE", search "Bonaire MyClimate" and install.
+Install via HACS (default store) or install manually by copying the files in a new 'custom_components/bonaire_myclimate' directory.
 
-### 2. Manual
+## Prerequisites
 
-Install it as you would do with any homeassistant custom component:
+- You must have the Bonaire Wifi Module installed and connected to your Wifi.
+- You must not have your iOS/Android app connected to the module.
 
-1. Download `custom_components` folder.
-2. Copy the `bonaire_myclimate` directory within the `custom_components` directory of your homeassistant installation.
-The `custom_components` directory resides within your homeassistant configuration directory.
-**Note**: if the custom_components directory does not exist, you need to create it.
-After a correct installation, your configuration directory should look like the following.
+## Configuration
+After you have installed the custom component (see above):
+1. Goto the `Configuration` -> `Integrations` page.  
+2. On the bottom right of the page, click on the `+ Add Integration` sign to add an integration.
+3. Search for `Bonaire MyClimate`. (If you don't see it, try refreshing your browser page to reload the cache.)
+4. Click `Submit` so add the integration.
 
-    ```
-    └── ...
-    └── configuration.yaml
-    └── custom_components
-        └── bonaire_myclimate
-            └── __init__.py
-            └── climate.py
-            └── manifest.json
-            └── services.yaml
-            └── BonairePyClimate
-                └── bonairepyclimate.py
-    ```
-
-# Prerequisites
-
-### 1. Hardware
-You must have the Bonaire Wifi Module installed and connected to your Wifi.
-
-# Configuration
-Add the following to your `configuration.yaml` file:
-
-```yaml
-# Example configuration.yaml entry
-climate:
-  - platform: bonaire_myclimate
-    name: this_is_my_entity_name
-```
-
-Configuration variables:
-
-- **name** (*Optional*): The name of your climate entity. Default is `Bonaire MyClimate`
-
-
-# Troubleshooting
+## Troubleshooting
 Please set your logging for the custom_component to debug:
 ```yaml
 logger:
@@ -60,140 +29,45 @@ logger:
     custom_components.bonaire_myclimate: debug
 ```
 
-# Using Simple Thermostat
+## Using "Simple Thermostat"
 There is a custom card that looks great and works really well with this climate component. https://github.com/nervetattoo/simple-thermostat
-This is the lovelace code I use to display my thermostat. It uses conditional card to display different things depending on if your climate entity is  off/heat/cool/fan.
+This is the lovelace code I use to display my thermostat.
+
+![image](https://user-images.githubusercontent.com/34525505/123367525-6c73dd80-d5bd-11eb-8efb-229a32e3e9aa.png)
+
 ```yaml
-cards:
-  - card:
-      control:
-        _headings: false
-        hvac:
-          cool:
-            name: Cool
-          fan_only:
-            name: Fan Only
-          heat:
-            name: Heat
-          'off':
-            name: 'Off'
-      decimals: 0
-      entity: climate.bonaire_myclimate
-      label:
-        temperature: Remote
-      name: false
-      step_size: 1
-      type: 'custom:simple-thermostat'
-    conditions:
-      - entity: climate.bonaire_myclimate
-        state: 'off'
-    type: conditional
-  - card:
-      control:
-        _headings: false
-        fan:
-          boost:
-            name: Boost
-          econ:
-            name: Economy
-          thermo:
-            name: Balanced
-        hvac:
-          cool:
-            name: Cool
-          fan_only:
-            name: Fan Only
-          heat:
-            name: Heat
-          'off':
-            name: 'Off'
-        preset:
-          '1':
-            name: Downstairs
-          '2':
-            name: Upstairs
-          '1,2':
-            name: Everywhere
-          none: false
-      decimals: 0
-      entity: climate.bonaire_myclimate
-      label:
-        temperature: Remote
-      name: false
-      step_size: 1
-      type: 'custom:simple-thermostat'
-    conditions:
-      - entity: climate.bonaire_myclimate
-        state: heat
-    type: conditional
-  - card:
-      control:
-        _headings: false
-        hvac:
-          cool:
-            name: Cool
-          fan_only:
-            name: Fan Only
-          heat:
-            name: Heat
-          'off':
-            name: 'Off'
-        preset:
-          '1':
-            name: Downstairs
-          '2':
-            name: Upstairs
-          '1,2':
-            name: Everywhere
-          none: false
-      decimals: 0
-      entity: climate.bonaire_myclimate
-      label:
-        temperature: Remote
-      name: false
-      step_size: 1
-      type: 'custom:simple-thermostat'
-    conditions:
-      - entity: climate.bonaire_myclimate
-        state: cool
-    type: conditional
-  - card:
-      control:
-        _headings: false
-        fan:
-          boost:
-            name: Boost
-          econ:
-            name: Economy
-          thermo:
-            name: Balanced
-        hvac:
-          cool:
-            name: Cool
-          fan_only:
-            name: Fan Only
-          heat:
-            name: Heat
-          'off':
-            name: 'Off'
-        preset:
-          '1':
-            name: Downstairs
-          '2':
-            name: Upstairs
-          '1,2':
-            name: Everywhere
-          none: false
-      decimals: 0
-      entity: climate.bonaire_myclimate
-      label:
-        temperature: Remote
-      name: false
-      step_size: 1
-      type: 'custom:simple-thermostat'
-    conditions:
-      - entity: climate.bonaire_myclimate
-        state: fan_only
-    type: conditional
-type: vertical-stack
+type: custom:simple-thermostat
+entity: climate.bonaire_myclimate
+header: false
+layout:
+  step: row
+  mode:
+    headings: false
+hide:
+  state: true
+decimals: '0'
+step_size: '1'
+control:
+  _headings: false
+  hvac:
+    cool:
+      name: Cool
+    fan_only:
+      name: Fan Only
+    heat:
+      name: Heat
+    'off':
+      name: 'Off'
+  preset:
+    '1':
+      name: Downstairs
+    '2':
+      name: Upstairs
+    _hide_when_off: true
+    1,2:
+      name: Everywhere
 ```
+<a href="https://www.buymeacoffee.com/bremor" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height=40px width=144px></a>
+
+[hacs]: https://hacs.xyz
+[hacsbadge]: https://img.shields.io/badge/HACS-Default-orange.svg?style=for-the-badge
