@@ -1,0 +1,12 @@
+{
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Already configured. Only a single instance is allowed."
+    },
+    "step": {
+      "user": {
+        "description": "Set up the Bonaire MyClimate integration."
+      }
+    }
+  }
+}
