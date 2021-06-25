@@ -1,0 +1,3 @@
+connect:
+  name: Connect
+  description: Connect to the Bonaire MyClimate Wi-Fi module.

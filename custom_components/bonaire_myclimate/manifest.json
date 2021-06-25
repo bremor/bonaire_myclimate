@@ -1,0 +1,15 @@
+{
+  "domain": "bonaire_myclimate",
+  "name": "Bonaire MyClimate",
+  "config_flow": true,
+  "documentation": "https://github.com/bremor/bonaire_myclimate",
+  "issue_tracker": "https://github.com/bremor/bonaire_myclimate/issues",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": ["@bremor"],
+  "iot_class": "local_push",
+  "version": "1.0.0"
+}
