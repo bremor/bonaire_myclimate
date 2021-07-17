@@ -31,6 +31,10 @@ class Hub:
         self._callbacks = set()
         self._connected = False # When there is an open TCP connection
         self._fan_mode_memory_heat = "thermo"
+        self._postzoneinfo_response_ok = False
+        self._queued_commands = {}
+        self._queueing_commands = False
+        self._queueing_timer = None
         self._ready = False # Ready to send commands
         self._start_task = None
         self._zone_info = {}
@@ -188,8 +192,9 @@ class Hub:
             self._server_transport.write(XML_GETZONEINFO.encode())
 
         # Check if the message is a getzoneinfo response or postzoneinfo
-        elif (root.findtext("response") == "getzoneinfo" or
-                root.findtext("post") == "postzoneinfo"):
+        elif ((root.findtext("response") == "getzoneinfo" or
+                root.findtext("post") == "postzoneinfo") and 
+                not self._queueing_commands):
 
             # Save all the hvac zone info
             self._zone_info = {}
@@ -206,13 +211,13 @@ class Hub:
                 self.hvac_mode = HVAC_MODE_FAN_ONLY
                 self.supported_features = SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
             elif self._zone_info["type"] == "heat":
-                self._fan_mode_memory_heat = self._zone_info["mode"]
                 self.fan_mode = self._zone_info["mode"]
                 self.fan_modes = FAN_MODES_HEAT
                 self.hvac_mode = HVAC_MODE_HEAT
                 self.preset_modes = self._preset_modes_heat
-                self.target_temperature = int(self._zone_info["setPoint"])
                 self.supported_features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
+                self.target_temperature = int(self._zone_info["setPoint"])
+                self._fan_mode_memory_heat = self.fan_mode
             elif self._zone_info["type"] == "cool":
                 self.fan_mode = self._zone_info["mode"]
                 self.fan_modes = FAN_MODES_COOL
@@ -239,6 +244,7 @@ class Hub:
         elif (root.findtext("response") == "postzoneinfo" and
                 root.findtext("result") == "ok"):
 
+            self._postzoneinfo_response_ok = True
             _LOGGER.info("Sending getzoneinfo")
             _LOGGER.debug(f"Sending: {XML_GETZONEINFO}")
             self._server_transport.write(XML_GETZONEINFO.encode())
@@ -251,17 +257,18 @@ class Hub:
     async def async_set_fan_mode(self, fan_mode):
         """Set new target fan operation."""
         if self._zone_info["mode"] == "fan":
-            command = {"fanSpeed": fan_mode}
+            self._queued_commands["fanSpeed"] = fan_mode
         elif self._zone_info["type"] == "evap":
             command = {"fanSpeed": fan_mode}
+            self._queued_commands["fanSpeed"] = fan_mode
             if int(fan_mode) < 8:
-                command["mode"] = "manual"
+                self._queued_commands["mode"] = "manual"
             elif int(fan_mode) == 8:
-                command["mode"] = "boost"
+                self._queued_commands["mode"] = "boost"
         else:
-            command = {"mode": fan_mode}
+            self._queued_commands["mode"] = fan_mode
 
-        await self.async_send_commands(command)
+        self._hass.loop.create_task(self.queue_commands())
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -297,13 +304,57 @@ class Hub:
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new target preset mode."""
-        command = {"zoneList": preset_mode}
-        await self.async_send_commands(command)
+        self._queued_commands["zoneList"] = preset_mode
+        self._hass.loop.create_task(self.queue_commands())
 
     async def async_set_temperature(self, temperature):
         """Set new target temperature."""
-        command = {"setPoint": str(temperature)}
-        await self.async_send_commands(command)
+        self._queued_commands["setPoint"] = str(temperature)
+        self._hass.loop.create_task(self.queue_commands())
+
+    async def queue_commands(self, skip_queue=False):
+
+        # Set/reset the queueing timer
+        if skip_queue:
+            self._queueing_timer = 0
+        else:
+            self._queueing_timer = 5
+
+        # If commands are already queued, do not proceed
+        if not self._queueing_commands or skip_queue:
+            self._queueing_commands = True
+
+            # Do not continue until no commands are received for 5 seconds
+            while self._queueing_timer > 0:
+                # Decrement the queueing timer 
+                if self._ready:
+                    self._queueing_timer -= 1
+                await asyncio.sleep(1)
+
+            # Build the command based on the queued commands
+            postzoneinfo = "<myclimate><post>postzoneinfo</post>"
+            for command, value in self._queued_commands.items():
+                postzoneinfo += f"<{command}>{value}</{command}>"
+            postzoneinfo += "</myclimate>"
+
+            self._queued_commands.clear()
+            self._queueing_commands = False
+
+            # Attempt to send the command up 3 times
+            for attempts in range(3):
+                if attempts > 0:
+                    _LOGGER.info("Response not received, resending postzoneinfo")
+                else:
+                    _LOGGER.info("Sending postzoneinfo")
+                _LOGGER.debug(f"Sending: {postzoneinfo}")
+                self._server_transport.write(postzoneinfo.encode())
+
+                await asyncio.sleep(3)
+                if self._postzoneinfo_response_ok: break
+            else:
+                _LOGGER.warning("No postzoneinfo response received after 3 attempts, aborting")
+
+            self._postzoneinfo_response_ok = False
 
     async def async_send_commands(self, commands):
         """Send commands to device."""
