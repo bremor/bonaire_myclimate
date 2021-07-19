@@ -1,7 +1,5 @@
 """Constants for the Bonaire MyClimate integration."""
 
-CONF_STAY_CONNECTED = "stay_connected"
-
 DEVICE_MANUFACTURER = "Bonaire"
 DEVICE_MODEL = "MyClimate Wi-Fi"
 DEVICE_NAME = "Bonaire MyClimate"

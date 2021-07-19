@@ -1,3 +1,9 @@
-connect:
-  name: Connect
-  description: Connect to the Bonaire MyClimate Wi-Fi module.
+send_raw_command:
+  name: Send Raw Command
+  decsription: Send a raw command to the Bonaire MyClimate Wi-Fi module.
+  fields:
+    raw_command:
+      name: Raw Command
+      description: Raw command to send to the Bonaire MyClimate Wi-Fi module.
+      required: true
+      example: '{system: "on", zoneList: "1,2"}'

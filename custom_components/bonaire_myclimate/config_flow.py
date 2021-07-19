@@ -3,7 +3,7 @@ import logging
 import voluptuous as vol
 
 from homeassistant import config_entries#, core
-from .const import DEVICE_NAME, DOMAIN, CONF_STAY_CONNECTED
+from .const import DEVICE_NAME, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

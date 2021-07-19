@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import get_local_ip
 
 from .BonairePyClimate import hub
-from .const import CONF_STAY_CONNECTED, DOMAIN
+from .const import DOMAIN
 
 PLATFORMS = ["climate"]
 
@@ -25,6 +25,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.async_create_task(
             hass.config_entries.async_forward_entry_setup(entry, component)
         )
+
+    async def send_raw_command(call):
+        """Handle the service call."""
+        command = call.data.get("raw_command")
+
+        await hass.data[DOMAIN][entry.entry_id].async_send_commands(command)
+
+    hass.services.async_register(DOMAIN, "send_raw_command", send_raw_command)
 
     return True
 
