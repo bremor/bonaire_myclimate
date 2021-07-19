@@ -6,6 +6,19 @@ This Home Assistant custom component is a reverse engineered implementation of t
 
 This custom component was completely re-written as of `1.0.0` and no longer uses yaml config and must be added through your `Integrations` page. Please direct all bugs over to [Issues](https://github.com/bremor/bonaire_myclimate/issues).
 
+
+## 1.1.0 "send_raw_command" Service
+
+Introducing a new service that allows you to send commands directly to the Bonaire MyClimate Wi-Fi module. This is a much more reliable way for automations or scripts that require multiple changes at the same time, for example changing temperature and zone at the same time.
+```
+service: bonaire_myclimate.send_raw_command
+data:
+  raw_command:
+    system: 'on'
+    zoneList: '1'
+    setPoint: '22'
+```
+
 ## Installation
 
 [![hacs][hacsbadge]][hacs]
