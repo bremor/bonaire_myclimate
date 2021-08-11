@@ -31,6 +31,8 @@ class Hub:
         self._callbacks = set()
         self._connected = False # When there is an open TCP connection
         self._fan_mode_memory_heat = "thermo"
+        self._postzoneinfo_response_ok = False
+        self._queued_commands = []
         self._ready = False # Ready to send commands
         self._start_task = None
         self._zone_info = {}
@@ -211,8 +213,8 @@ class Hub:
                 self.fan_modes = FAN_MODES_HEAT
                 self.hvac_mode = HVAC_MODE_HEAT
                 self.preset_modes = self._preset_modes_heat
-                self.target_temperature = int(self._zone_info["setPoint"])
                 self.supported_features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
+                self.target_temperature = int(self._zone_info["setPoint"])
             elif self._zone_info["type"] == "cool":
                 self.fan_mode = self._zone_info["mode"]
                 self.fan_modes = FAN_MODES_COOL
@@ -239,6 +241,7 @@ class Hub:
         elif (root.findtext("response") == "postzoneinfo" and
                 root.findtext("result") == "ok"):
 
+            self._postzoneinfo_response_ok = True
             _LOGGER.info("Sending getzoneinfo")
             _LOGGER.debug(f"Sending: {XML_GETZONEINFO}")
             self._server_transport.write(XML_GETZONEINFO.encode())
@@ -305,16 +308,39 @@ class Hub:
         command = {"setPoint": str(temperature)}
         await self.async_send_commands(command)
 
-    async def async_send_commands(self, commands):
+    async def async_send_commands(self, command):
         """Send commands to device."""
-        # Wait until ready to send commands
-        while not self._ready:
-            await asyncio.sleep(1)
+        _LOGGER.warning(command)
+        # Append the given command to the end of the queued commands
+        self._queued_commands.append(command)
 
-        postzoneinfo = "<myclimate><post>postzoneinfo</post>"
-        for command, value in commands.items():
-            postzoneinfo += f"<{command}>{value}</{command}>"
-        postzoneinfo += "</myclimate>"
-        _LOGGER.info("Sending postzoneinfo")
-        _LOGGER.debug(f"Sending: {postzoneinfo}")
-        self._server_transport.write(postzoneinfo.encode())
+        if len(self._queued_commands) == 1:
+        
+            while len(self._queued_commands) > 0:
+
+                # Wait until ready to send commands
+                while not self._ready:
+                    await asyncio.sleep(1)
+
+                command = self._queued_commands[0]
+
+                postzoneinfo = "<myclimate><post>postzoneinfo</post>"
+                for key, value in command.items():
+                    postzoneinfo += f"<{key}>{value}</{key}>"
+                postzoneinfo += "</myclimate>"
+
+                # Attempt to send the command up to 3 times
+                for attempts in range(3):
+                    if attempts > 0:
+                        _LOGGER.info("Response not received, resending postzoneinfo")
+                    else:
+                        _LOGGER.info("Sending postzoneinfo")
+                    _LOGGER.debug(f"Sending: {postzoneinfo}")
+                    self._server_transport.write(postzoneinfo.encode())
+
+                    await asyncio.sleep(3)
+                    if self._postzoneinfo_response_ok: break
+                else:
+                    _LOGGER.warning("No postzoneinfo response received after 3 attempts, aborting")
+
+                self._queued_commands.pop(0)
