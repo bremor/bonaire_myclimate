@@ -206,6 +206,10 @@ class Hub:
                 self.fan_mode = self._zone_info["fanSpeed"]
                 self.fan_modes = FAN_MODES_FAN_ONLY
                 self.hvac_mode = HVAC_MODE_FAN_ONLY
+                if self._zone_info["type"] == "heat":
+                    self.preset_modes = self._preset_modes_heat
+                else:
+                    self.preset_modes = self._preset_modes_cool
                 self.supported_features = SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
             elif self._zone_info["type"] == "heat":
                 self._fan_mode_memory_heat = self._zone_info["mode"]
