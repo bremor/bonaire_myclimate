@@ -1,5 +1,6 @@
 {
   "name": "Bonaire MyClimate",
   "render_readme": "true",
-  "iot_class": "Local Push"
+  "iot_class": "Local Push",
+  "homeassistant": "2021.12.0"
 }
