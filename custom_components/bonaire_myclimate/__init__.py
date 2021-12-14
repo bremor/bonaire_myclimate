@@ -1,9 +1,9 @@
 """The Bonaire MyClimate integration."""
 import asyncio
 
+from homeassistant.components.network import async_get_source_ip
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.util import get_local_ip
 
 from .BonairePyClimate import hub
 from .const import DOMAIN
@@ -19,7 +19,8 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the Bonaire MyClimate from a config entry."""
-    hass.data[DOMAIN][entry.entry_id] = hub.Hub(hass, get_local_ip())
+    local_ip = await async_get_source_ip(hass)
+    hass.data[DOMAIN][entry.entry_id] = hub.Hub(hass, local_ip)
 
     for component in PLATFORMS:
         hass.async_create_task(
