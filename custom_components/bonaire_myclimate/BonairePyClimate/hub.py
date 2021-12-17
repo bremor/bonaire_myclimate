@@ -314,7 +314,7 @@ class Hub:
 
     async def async_send_commands(self, command):
         """Send commands to device."""
-        _LOGGER.warning(command)
+        _LOGGER.info(command)
         # Append the given command to the end of the queued commands
         self._queued_commands.append(command)
 
