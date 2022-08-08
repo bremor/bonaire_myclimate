@@ -9,7 +9,7 @@ This custom component was completely re-written as of `1.0.0` and no longer uses
 
 ## 1.1.0 - New Service: "bonaire_myclimate.send_raw_command"
 
-Introducing a new service that allows you to send commands directly to the Bonaire MyClimate Wi-Fi module. This is a much more reliable way for automations or scripts that require multiple changes at the same time, for example changing temperature and zone at the same time.
+Introducing a new service that allows you to send commands directly to the Bonaire MyClimate Wi-Fi module. This is a much more reliable way for automations or scripts that require multiple changes at the same time, for example changing temperature and zone at the same time. For a complete list of all different raw commands, you should set your logging to debug for this integration to see what is sent and received by the WiFi module.
 ```
 service: bonaire_myclimate.send_raw_command
 data:
@@ -17,6 +17,8 @@ data:
     system: 'on'
     zoneList: '1'
     setPoint: '22'
+    type: heat
+    mode: econ
 ```
 
 ## Installation
