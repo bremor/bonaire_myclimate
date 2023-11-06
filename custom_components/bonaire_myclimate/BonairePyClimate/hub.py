@@ -6,6 +6,7 @@ import xml.etree.ElementTree
 from homeassistant.components.climate.const import (
     HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL, HVAC_MODE_FAN_ONLY,
     SUPPORT_TARGET_TEMPERATURE, SUPPORT_PRESET_MODE, SUPPORT_FAN_MODE,
+
 )
 
 from .helpers import (
@@ -226,6 +227,12 @@ class Hub:
                 self.preset_modes = self._preset_modes_cool
                 self.supported_features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
                 self.target_temperature = int(self._zone_info["setPoint"])
+            elif self._zone_info["type"] == "evap" and self._zone_info["mode"] == "thermo":
+                self.fan_mode = self._zone_info["setPoint"]
+                self.fan_modes = FAN_MODES_EVAP
+                self.hvac_mode = HVAC_MODE_COOL
+                self.preset_modes = self._preset_modes_evap
+                self.supported_features = SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
             elif self._zone_info["type"] == "evap":
                 self.fan_mode = self._zone_info["fanSpeed"]
                 self.fan_modes = FAN_MODES_EVAP
@@ -259,6 +266,9 @@ class Hub:
         """Set new target fan operation."""
         if self._zone_info["mode"] == "fan":
             command = {"fanSpeed": fan_mode}
+        elif self._zone_info["type"] == "evap" and self._zone_info["mode"] == "thermo":
+            command = {"setPoint": fan_mode}
+            command["mode"] = "thermo"
         elif self._zone_info["type"] == "evap":
             command = {"fanSpeed": fan_mode}
             if int(fan_mode) < 8:
