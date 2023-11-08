@@ -1,7 +1,5 @@
 # Bonaire My Climate Custom Component
 
-Limited Support for Evaporative Cooler Thermo Mode.
-
 This Home Assistant custom component is a reverse engineered implementation of the "My Climate" iOS/Android app which is used to control the Wi-Fi module of a Bonaire heating and/or cooling system. This is in no way associated with the company Bonaire and comes with no guarantees or warranty. Use at your own risk.
 
 ## 1.0.0 - Breaking Changes
@@ -22,6 +20,9 @@ data:
     type: heat
     mode: econ
 ```
+## 1.1.1 - Support for Evaporative cooler running in thermo mode.
+
+Evaporative coooler runnning in thermo mode uses a set point for the fan Speed rather than fan speed.  This difference caused a bug with the previous versions that would crash the plugin when unit was changed to Evap and in thermo mode.  The only way to rectify it was to use the Navigator control to change the unit to manual  or back to heat.  This verion supports evaporative cooling running in thermo mode.  It can't change the unit to and from thermo mode but this should be possible with the bonaire_myclimate.send_raw_command service.
 
 ## Installation
 
