@@ -143,6 +143,9 @@ class BonaireMyClimateClimate(ClimateEntity):
         """Set new target hvac mode."""
         await self._hub.async_set_hvac_mode(hvac_mode)
 
+    async def async_turn_off(self) -> None:
+        await self._hub.async_turn_off()
+
     async def async_set_preset_mode(self, preset_mode):
         """Set new target preset mode."""
         await self._hub.async_set_preset_mode(preset_mode)
