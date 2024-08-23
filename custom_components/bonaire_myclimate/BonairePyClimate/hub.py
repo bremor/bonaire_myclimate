@@ -47,7 +47,7 @@ class Hub:
         self.hvac_modes = None
         self.preset_mode = None
         self.preset_modes = None
-        self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+        self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF | ClimateEntityFeature.TURN_ON
         self.target_temperature = None
 
         self._start_task = self._hass.loop.create_task(self.async_start())
@@ -206,28 +206,28 @@ class Hub:
                     self.preset_modes = self._preset_modes_heat
                 else:
                     self.preset_modes = self._preset_modes_cool
-                self.supported_features = ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF | ClimateEntityFeature.TURN_ON
             elif self._zone_info["type"] == "heat":
                 self._fan_mode_memory_heat = self._zone_info["mode"]
                 self.fan_mode = self._zone_info["mode"]
                 self.fan_modes = FAN_MODES_HEAT
                 self.hvac_mode = HVACMode.HEAT
                 self.preset_modes = self._preset_modes_heat
-                self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF | ClimateEntityFeature.TURN_ON
                 self.target_temperature = int(self._zone_info["setPoint"])
             elif self._zone_info["type"] == "cool":
                 self.fan_mode = self._zone_info["mode"]
                 self.fan_modes = FAN_MODES_COOL
                 self.hvac_mode = HVACMode.COOL
                 self.preset_modes = self._preset_modes_cool
-                self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF | ClimateEntityFeature.TURN_ON
                 self.target_temperature = int(self._zone_info["setPoint"])
             elif self._zone_info["type"] == "evap":
                 self.fan_mode = self._zone_info["fanSpeed"]
                 self.fan_modes = FAN_MODES_EVAP
                 self.hvac_mode = HVACMode.COOL
                 self.preset_modes = self._preset_modes_evap
-                self.supported_features = ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF | ClimateEntityFeature.TURN_ON
 
             self.current_temperature = int(self._zone_info["roomTemp"])
             self.preset_mode = self._zone_info["zoneList"]
@@ -297,6 +297,10 @@ class Hub:
                 }
 
         await self.async_send_commands(commands)
+
+    async def async_turn_on(self) -> None:
+        command = {"system": "on"}
+        await self.async_send_commands(command)
 
     async def async_turn_off(self) -> None:
         await self.async_set_hvac_mode(HVACMode.OFF)
