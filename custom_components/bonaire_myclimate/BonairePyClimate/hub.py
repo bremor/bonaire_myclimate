@@ -3,15 +3,11 @@ import asyncio
 import logging
 import xml.etree.ElementTree
 
-<<<<<<< HEAD
 from homeassistant.components.climate.const import (
     HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL, HVAC_MODE_FAN_ONLY,
     SUPPORT_TARGET_TEMPERATURE, SUPPORT_PRESET_MODE, SUPPORT_FAN_MODE,
 
 )
-=======
-from homeassistant.components.climate.const import ClimateEntityFeature, HVACMode
->>>>>>> 8a3f5181a32bce7e4ab26100153fd436859bd975
 
 from .helpers import (
     create_datagram_transport, create_server, zone_combinations
