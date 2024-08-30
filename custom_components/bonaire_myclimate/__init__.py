@@ -22,7 +22,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     local_ip = await async_get_source_ip(hass)
     hass.data[DOMAIN][entry.entry_id] = hub.Hub(hass, local_ip)
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    for component in PLATFORMS:
+        hass.async_create_task(
+            hass.config_entries.async_forward_entry_setup(entry, component)
+        )
 
     async def send_raw_command(call):
         """Handle the service call."""

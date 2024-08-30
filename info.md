@@ -1,7 +1,5 @@
 # Bonaire My Climate Custom Component
 
-SMAURER Version
-
 This Home Assistant custom component is a reverse engineered implementation of the "My Climate" iOS/Android app which is used to control the Wi-Fi module of a Bonaire heating and/or cooling system. This is in no way associated with the company Bonaire and comes with no guarantees or warranty. Use at your own risk.
 
 ## Installation
