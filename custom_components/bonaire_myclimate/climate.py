@@ -5,7 +5,7 @@ from homeassistant.components.climate import (
     ClimateEntity,
 )
 from homeassistant.const import (
-    ATTR_TEMPERATURE, UnitOfTemperature,
+    ATTR_TEMPERATURE, TEMP_CELSIUS,
 )
 from .const import (
     DEVICE_MANUFACTURER, DEVICE_MODEL, DEVICE_NAME, DOMAIN,
@@ -133,7 +133,7 @@ class BonaireMyClimateClimate(ClimateEntity):
     @property
     def temperature_unit(self):
         """Return the unit of measurement."""
-        return UnitOfTemperature.CELSIUS
+        return TEMP_CELSIUS
 
     async def async_set_fan_mode(self, fan_mode):
         """Set new target fan operation."""
@@ -142,9 +142,6 @@ class BonaireMyClimateClimate(ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
         await self._hub.async_set_hvac_mode(hvac_mode)
-
-    async def async_turn_off(self) -> None:
-        await self._hub.async_turn_off()
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new target preset mode."""

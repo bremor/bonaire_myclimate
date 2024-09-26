@@ -3,7 +3,11 @@ import asyncio
 import logging
 import xml.etree.ElementTree
 
-from homeassistant.components.climate.const import ClimateEntityFeature, HVACMode
+from homeassistant.components.climate.const import (
+    HVAC_MODE_OFF, HVAC_MODE_HEAT, HVAC_MODE_COOL, HVAC_MODE_FAN_ONLY,
+    SUPPORT_TARGET_TEMPERATURE, SUPPORT_PRESET_MODE, SUPPORT_FAN_MODE,
+
+)
 
 from .helpers import (
     create_datagram_transport, create_server, zone_combinations
@@ -27,7 +31,6 @@ class Hub:
         self._appliances = {}
         self._callbacks = set()
         self._connected = False # When there is an open TCP connection
-        self._enable_turn_on_off_backwards_compatibility = False
         self._fan_mode_memory_heat = "thermo"
         self._postzoneinfo_response_ok = False
         self._queued_commands = []
@@ -47,7 +50,7 @@ class Hub:
         self.hvac_modes = None
         self.preset_mode = None
         self.preset_modes = None
-        self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+        self.supported_features = 0
         self.target_temperature = None
 
         self._start_task = self._hass.loop.create_task(self.async_start())
@@ -97,6 +100,7 @@ class Hub:
 
                 elif 5 <= attempts:
                     self.available = False
+                    self.supported_features = 0
                     await self.publish_updates()
                     _LOGGER.warning(f"Discovery attempt #{attempts} failed, retrying in {cooloff_timer}s")
                     await asyncio.sleep(cooloff_timer)
@@ -166,12 +170,12 @@ class Hub:
                 self._appliances[type] = zoneList
 
             # Build hvac_modes property
-            self.hvac_modes = [HVACMode.OFF, HVACMode.FAN_ONLY]
+            self.hvac_modes = [HVAC_MODE_OFF, HVAC_MODE_FAN_ONLY]
             if self._appliances["heat"] is not None:
-                self.hvac_modes += [HVACMode.HEAT]
+                self.hvac_modes += [HVAC_MODE_HEAT]
             if (self._appliances["cool"] is not None or
                     self._appliances["evap"] is not None):
-                self.hvac_modes += [HVACMode.COOL]
+                self.hvac_modes += [HVAC_MODE_COOL]
 
             # Build the preset modes for each type of appliance
             self._preset_modes_heat = zone_combinations(
@@ -197,37 +201,44 @@ class Hub:
 
             # Process the zone info, build the hvac properties
             if self._zone_info["system"] == "off":
-                self.hvac_mode = HVACMode.OFF
+                self.hvac_mode = HVAC_MODE_OFF
+                self.supported_features = 0
             elif self._zone_info["mode"] == "fan":
                 self.fan_mode = self._zone_info["fanSpeed"]
                 self.fan_modes = FAN_MODES_FAN_ONLY
-                self.hvac_mode = HVACMode.FAN_ONLY
+                self.hvac_mode = HVAC_MODE_FAN_ONLY
                 if self._zone_info["type"] == "heat":
                     self.preset_modes = self._preset_modes_heat
                 else:
                     self.preset_modes = self._preset_modes_cool
-                self.supported_features = ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
             elif self._zone_info["type"] == "heat":
                 self._fan_mode_memory_heat = self._zone_info["mode"]
                 self.fan_mode = self._zone_info["mode"]
                 self.fan_modes = FAN_MODES_HEAT
-                self.hvac_mode = HVACMode.HEAT
+                self.hvac_mode = HVAC_MODE_HEAT
                 self.preset_modes = self._preset_modes_heat
-                self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
                 self.target_temperature = int(self._zone_info["setPoint"])
             elif self._zone_info["type"] == "cool":
                 self.fan_mode = self._zone_info["mode"]
                 self.fan_modes = FAN_MODES_COOL
-                self.hvac_mode = HVACMode.COOL
+                self.hvac_mode = HVAC_MODE_COOL
                 self.preset_modes = self._preset_modes_cool
-                self.supported_features = ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = SUPPORT_TARGET_TEMPERATURE | SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
                 self.target_temperature = int(self._zone_info["setPoint"])
+            elif self._zone_info["type"] == "evap" and self._zone_info["mode"] == "thermo":
+                self.fan_mode = self._zone_info["setPoint"]
+                self.fan_modes = FAN_MODES_EVAP
+                self.hvac_mode = HVAC_MODE_COOL
+                self.preset_modes = self._preset_modes_evap
+                self.supported_features = SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
             elif self._zone_info["type"] == "evap":
                 self.fan_mode = self._zone_info["fanSpeed"]
                 self.fan_modes = FAN_MODES_EVAP
-                self.hvac_mode = HVACMode.COOL
+                self.hvac_mode = HVAC_MODE_COOL
                 self.preset_modes = self._preset_modes_evap
-                self.supported_features = ClimateEntityFeature.PRESET_MODE | ClimateEntityFeature.FAN_MODE | ClimateEntityFeature.TURN_OFF
+                self.supported_features = SUPPORT_PRESET_MODE | SUPPORT_FAN_MODE
 
             self.current_temperature = int(self._zone_info["roomTemp"])
             self.preset_mode = self._zone_info["zoneList"]
@@ -255,6 +266,9 @@ class Hub:
         """Set new target fan operation."""
         if self._zone_info["mode"] == "fan":
             command = {"fanSpeed": fan_mode}
+        elif self._zone_info["type"] == "evap" and self._zone_info["mode"] == "thermo":
+            command = {"setPoint": fan_mode}
+            command["mode"] = "thermo"
         elif self._zone_info["type"] == "evap":
             command = {"fanSpeed": fan_mode}
             if int(fan_mode) < 8:
@@ -268,22 +282,22 @@ class Hub:
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
-        if hvac_mode == HVACMode.OFF:
+        if hvac_mode == HVAC_MODE_OFF:
             commands = {
                 "system": "off"
             }
-        elif hvac_mode == HVACMode.FAN_ONLY:
+        elif hvac_mode == HVAC_MODE_FAN_ONLY:
             commands = {
                 "system": "on",
                 "mode": "fan"
             }
-        elif hvac_mode == HVACMode.HEAT:
+        elif hvac_mode == HVAC_MODE_HEAT:
             commands = {
                 "system": "on",
                 "type": "heat",
                 "mode": self._fan_mode_memory_heat
             }
-        elif hvac_mode == HVACMode.COOL:
+        elif hvac_mode == HVAC_MODE_COOL:
             if self._appliances["cool"] is not None:
                 commands = {
                     "system": "on",
@@ -297,9 +311,6 @@ class Hub:
                 }
 
         await self.async_send_commands(commands)
-
-    async def async_turn_off(self) -> None:
-        await self.async_set_hvac_mode(HVACMode.OFF)
 
     async def async_set_preset_mode(self, preset_mode):
         """Set new target preset mode."""
