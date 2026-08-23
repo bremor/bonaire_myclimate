@@ -32,6 +32,18 @@ logger:
     custom_components.bonaire_myclimate: debug
 ```
 
+## Running tests
+
+The test suite uses Python's standard library and does not require a Home
+Assistant installation. From the repository root, run:
+
+```console
+python -B -m unittest discover -s tests -v
+```
+
+On systems where Python is installed as `python3`, use `python3` in place of
+`python`.
+
 ## Using "Simple Thermostat"
 
 There is a custom card that looks great and works really well with this climate component. https://github.com/nervetattoo/simple-thermostat
