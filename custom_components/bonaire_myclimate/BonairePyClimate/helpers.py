@@ -56,6 +56,7 @@ class HandleServer(asyncio.Protocol):
 
     _MESSAGE_START = b"<myclimate"
     _MESSAGE_END = b"</myclimate>"
+    _MESSAGE_WHITESPACE = b" \t\r\n"
     _MAX_BUFFER_SIZE = 64 * 1024
 
     def __init__(self, connection_made, data_received, connection_lost):
@@ -71,6 +72,14 @@ class HandleServer(asyncio.Protocol):
         self._buffer.extend(data)
 
         while self._buffer:
+            whitespace_length = len(self._buffer) - len(
+                self._buffer.lstrip(self._MESSAGE_WHITESPACE)
+            )
+            if whitespace_length:
+                del self._buffer[:whitespace_length]
+                if not self._buffer:
+                    return
+
             message_start = self._buffer.find(self._MESSAGE_START)
 
             if message_start == -1:
@@ -83,9 +92,13 @@ class HandleServer(asyncio.Protocol):
                 return
 
             if message_start:
+                discarded_prefix = bytes(self._buffer[:message_start])
                 _LOGGER.warning(
-                    "Discarding %s bytes before a MyClimate XML message",
+                    "Discarding %s bytes before a MyClimate XML message: "
+                    "repr=%r hex=%s",
                     message_start,
+                    discarded_prefix,
+                    discarded_prefix.hex(" "),
                 )
                 del self._buffer[:message_start]
 

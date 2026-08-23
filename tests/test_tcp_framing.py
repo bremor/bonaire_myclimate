@@ -60,6 +60,19 @@ class TestHandleServer(unittest.TestCase):
 
         self.assertEqual(self.messages, [MESSAGE_ONE, MESSAGE_TWO])
 
+    def test_newline_between_messages(self):
+        self.protocol.data_received(MESSAGE_ONE + b"\n" + MESSAGE_TWO + b"\n")
+
+        self.assertEqual(self.messages, [MESSAGE_ONE, MESSAGE_TWO])
+        self.assertEqual(self.protocol._buffer, b"")
+
+    def test_trailing_newline_before_next_chunk(self):
+        self.protocol.data_received(MESSAGE_ONE + b"\n")
+        self.protocol.data_received(MESSAGE_TWO + b"\n")
+
+        self.assertEqual(self.messages, [MESSAGE_ONE, MESSAGE_TWO])
+        self.assertEqual(self.protocol._buffer, b"")
+
     def test_complete_message_followed_by_fragment(self):
         split_at = 24
 
@@ -70,9 +83,15 @@ class TestHandleServer(unittest.TestCase):
         self.assertEqual(self.messages, [MESSAGE_ONE, MESSAGE_TWO])
 
     def test_junk_before_message(self):
-        self.protocol.data_received(b"\r\nnoise" + MESSAGE_ONE)
+        chunk = b"\r\n\x00noise" + MESSAGE_ONE
+
+        with self.assertLogs(HELPERS._LOGGER, level="WARNING") as logs:
+            self.protocol.data_received(chunk)
 
         self.assertEqual(self.messages, [MESSAGE_ONE])
+        output = "\n".join(logs.output)
+        self.assertIn("repr=b'\\x00noise'", output)
+        self.assertIn("hex=00 6e 6f 69 73 65", output)
 
 
 if __name__ == "__main__":
