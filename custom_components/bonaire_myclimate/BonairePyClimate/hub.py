@@ -141,10 +141,15 @@ class Hub:
         self._server_transport = transport
 
     def server_data_received(self, data):
-        message = data.decode()
+        try:
+            message = data.decode()
+            root = xml.etree.ElementTree.fromstring(message)
+        except (UnicodeDecodeError, xml.etree.ElementTree.ParseError) as error:
+            _LOGGER.warning("Ignoring malformed MyClimate XML message: %s", error)
+            return
+
         _LOGGER.info("Server data received")
         _LOGGER.debug(f"Received: {message}")
-        root = xml.etree.ElementTree.fromstring(message)
 
         # Check if the message is a discovery response
         if root.findtext("response") == "discovery":

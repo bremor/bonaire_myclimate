@@ -52,16 +52,56 @@ class HandleUDPBroadcast:
         pass
 
 class HandleServer(asyncio.Protocol):
+    """Handle the MyClimate TCP stream and emit complete XML messages."""
+
+    _MESSAGE_START = b"<myclimate"
+    _MESSAGE_END = b"</myclimate>"
+    _MAX_BUFFER_SIZE = 64 * 1024
+
     def __init__(self, connection_made, data_received, connection_lost):
         self._connection_made_callback = connection_made
         self._data_received_callback = data_received
         self._connection_lost_callback = connection_lost
+        self._buffer = bytearray()
 
     def connection_made(self, transport):
         self._connection_made_callback(transport)
 
     def data_received(self, data):
-        self._data_received_callback(data)
+        self._buffer.extend(data)
+
+        while self._buffer:
+            message_start = self._buffer.find(self._MESSAGE_START)
+
+            if message_start == -1:
+                if len(self._buffer) > self._MAX_BUFFER_SIZE:
+                    _LOGGER.warning(
+                        "Discarding %s bytes without a MyClimate XML start tag",
+                        len(self._buffer),
+                    )
+                    self._buffer.clear()
+                return
+
+            if message_start:
+                _LOGGER.warning(
+                    "Discarding %s bytes before a MyClimate XML message",
+                    message_start,
+                )
+                del self._buffer[:message_start]
+
+            message_end = self._buffer.find(self._MESSAGE_END)
+            if message_end == -1:
+                if len(self._buffer) > self._MAX_BUFFER_SIZE:
+                    _LOGGER.warning(
+                        "Discarding oversized incomplete MyClimate XML message"
+                    )
+                    self._buffer.clear()
+                return
+
+            message_end += len(self._MESSAGE_END)
+            message = bytes(self._buffer[:message_end])
+            del self._buffer[:message_end]
+            self._data_received_callback(message)
 
     def connection_lost(self, exc):
         self._connection_lost_callback()
