@@ -1,28 +1,36 @@
 """Helpers functions for BonairePyClimate."""
 import asyncio
 import logging
-import socket
 
 from .const import (
     PORT_DISCOVERY,
     PORT_LOCAL,
+    XML_DISCOVERY,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def create_datagram_transport(event_loop):
+async def async_send_udp_discovery(local_ip: str):
+    """Send the UDP discovery payload"""
+    # Create an XML payload with the IP address of this integration.
+    # Sending the UDP broadcast will cause the Bonaire MyClimate device
+    # to establish the connection to this IP address.
+    xml_discovery = XML_DISCOVERY.format(local_ip)
+    _LOGGER.info("Sending discovery")
+    _LOGGER.debug(f"Sending: {xml_discovery}")
 
-    # Create the UDP Broadcast client
-    transport, protocol = await event_loop.create_datagram_endpoint(
-        lambda: HandleUDPBroadcast(),
-        remote_addr=('255.255.255.255', PORT_DISCOVERY),
-        allow_broadcast=True)
-    sock = transport.get_extra_info("socket")
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    loop = asyncio.get_running_loop()
 
-    return transport
+    transport, protocol = await loop.create_datagram_endpoint(
+        lambda: asyncio.DatagramProtocol(),
+        remote_addr=("255.255.255.255", PORT_DISCOVERY),
+        allow_broadcast=True,
+    )
+
+    transport.sendto(xml_discovery.encode())
+    transport.close()
+
 
 async def create_server(event_loop, connection_made,
                         data_received, connection_lost):
@@ -31,6 +39,7 @@ async def create_server(event_loop, connection_made,
     return await event_loop.create_server(
         lambda: HandleServer(connection_made, data_received, connection_lost),
         port=PORT_LOCAL)
+
 
 def zone_combinations(zone_string):
     """Returns all combinations of zones given a zone string."""
@@ -44,12 +53,6 @@ def zone_combinations(zone_string):
 
     return zone_combinations
 
-class HandleUDPBroadcast:
-    def connection_made(self, transport):
-        pass
-
-    def connection_lost(self, exc):
-        pass
 
 class HandleServer(asyncio.Protocol):
     def __init__(self, connection_made, data_received, connection_lost):
