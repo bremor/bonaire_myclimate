@@ -32,6 +32,12 @@ logger:
     custom_components.bonaire_myclimate: debug
 ```
 
+## Development and recovery tests
+
+Run `python -m unittest discover -s tests -v` with Python 3.12 or newer.
+See [session recovery](docs/session-recovery.md) for behavior, timing limits,
+test coverage and hardware-validation limits.
+
 ## Using "Simple Thermostat"
 
 There is a custom card that looks great and works really well with this climate component. https://github.com/nervetattoo/simple-thermostat
