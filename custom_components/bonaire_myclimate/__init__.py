@@ -1,6 +1,8 @@
 """The Bonaire MyClimate integration."""
+
 import asyncio
 
+from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from homeassistant.components.network import async_get_source_ip
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -20,7 +22,15 @@ async def async_setup(hass: HomeAssistant, config: dict):
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the Bonaire MyClimate from a config entry."""
     local_ip = await async_get_source_ip(hass)
-    hass.data[DOMAIN][entry.entry_id] = hub.Hub(hass, local_ip)
+    controller = hub.Hub(hass, local_ip)
+    hass.data[DOMAIN][entry.entry_id] = controller
+
+    async def stop_controller(event):
+        await controller.async_teardown()
+
+    entry.async_on_unload(
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop_controller)
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -46,6 +56,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
     )
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        controller = hass.data[DOMAIN].pop(entry.entry_id)
+        await controller.async_teardown()
+        if not hass.data[DOMAIN]:
+            hass.services.async_remove(DOMAIN, "send_raw_command")
 
     return unload_ok
